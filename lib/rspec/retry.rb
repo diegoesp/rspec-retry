@@ -6,7 +6,7 @@ module RSpec
   class Retry
     def self.apply
       RSpec.configure do |config|
-        # Allow the user to specify tags to filter execution of rspec-retry
+        # Allow the user to specify tags to execute rspec-retry
         config.add_setting :retry_on_tags, :default => nil
         config.add_setting :verbose_retry, :default => false
         config.add_setting :default_retry_count, :default => 1
@@ -19,33 +19,33 @@ module RSpec
           proc { RSpec.current_example } : proc { |context| context.example }
 
         config.around(:each) do |ex|
+          example = fetch_current_example.call(self)
+          retry_count = ex.metadata[:retry] || RSpec.configuration.default_retry_count
+          sleep_interval = ex.metadata[:retry_wait] || RSpec.configuration.default_sleep_interval
+
+          clear_lets = ex.metadata[:clear_lets_on_failure]
+          clear_lets = RSpec.configuration.clear_lets_on_failure if clear_lets.nil?
+
           # If retry_on_tags is specified we have to filter to see if we have to execute rspec-retry
           if retry_on_tags = RSpec.configuration.retry_on_tags
-            if ex.metadata.keys.any? &retry_on_tags.method(:include?)
-              example = fetch_current_example.call(self)
-              retry_count = ex.metadata[:retry] || RSpec.configuration.default_retry_count
-              sleep_interval = ex.metadata[:retry_wait] || RSpec.configuration.default_sleep_interval
+            retry_count = 0 unless ex.metadata.keys.any? &retry_on_tags.method(:include?)
+          end
 
-              clear_lets = ex.metadata[:clear_lets_on_failure]
-              clear_lets = RSpec.configuration.clear_lets_on_failure if clear_lets.nil?
-
-              retry_count.times do |i|
-                if RSpec.configuration.verbose_retry?
-                  if i > 0
-                    message = "RSpec::Retry: #{RSpec::Retry.ordinalize(i + 1)} try #{example.location}"
-                    message = "\n" + message if i == 1
-                    RSpec.configuration.reporter.message(message)
-                  end
-                end
-                example.clear_exception
-                ex.run
-
-                break if example.exception.nil?
-
-                self.clear_lets if clear_lets
-                sleep sleep_interval if sleep_interval.to_i > 0
+          retry_count.times do |i|
+            if RSpec.configuration.verbose_retry?
+              if i > 0
+                message = "RSpec::Retry: #{RSpec::Retry.ordinalize(i + 1)} try #{example.location}"
+                message = "\n" + message if i == 1
+                RSpec.configuration.reporter.message(message)
               end
             end
+            example.clear_exception
+            ex.run
+
+            break if example.exception.nil?
+
+            self.clear_lets if clear_lets
+            sleep sleep_interval if sleep_interval.to_i > 0
           end
         end
       end
