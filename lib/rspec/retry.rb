@@ -28,13 +28,13 @@ module RSpec
 
           # If retry_on_tags is specified we have to filter to see if we have to execute rspec-retry
           if retry_on_tags = RSpec.configuration.retry_on_tags
-            retry_count = 0 unless ex.metadata.keys.any? &retry_on_tags.method(:include?)
+            retry_count = 1 unless ex.metadata.keys.any? &retry_on_tags.method(:include?)
           end
 
           retry_count.times do |i|
             if RSpec.configuration.verbose_retry?
               if i > 0
-                message = "RSpec::Retry: #{RSpec::Retry.ordinalize(i + 1)} try #{example.location}"
+                message = "\nRSpec::Retry: #{RSpec::Retry.ordinalize(i + 1)} try #{example.location}"
                 message = "\n" + message if i == 1
                 RSpec.configuration.reporter.message(message)
               end
