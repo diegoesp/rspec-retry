@@ -21,7 +21,7 @@ module RSpec
         config.around(:each) do |ex|
           # If retry_on_tags is specified we have to filter to see if we have to execute rspec-retry
           if retry_on_tags = RSpec.configuration.retry_on_tags
-            return unless ex.metadata.keys.any? &retry_on_tags.method(:include?)
+            break unless ex.metadata.keys.any? &retry_on_tags.method(:include?)
           end
 
           example = fetch_current_example.call(self)
