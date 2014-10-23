@@ -6,6 +6,8 @@ module RSpec
   class Retry
     def self.apply
       RSpec.configure do |config|
+        # Allow the user to specify tags to filter execution of rspec-retry
+        config.add_setting :retry_on_tags, :default => nil
         config.add_setting :verbose_retry, :default => false
         config.add_setting :default_retry_count, :default => 1
         config.add_setting :default_sleep_interval, :default => 0
@@ -17,6 +19,11 @@ module RSpec
           proc { RSpec.current_example } : proc { |context| context.example }
 
         config.around(:each) do |ex|
+          # If retry_on_tags is specified we have to filter to see if we have to execute rspec-retry
+          if retry_on_tags = RSpec.configuration.retry_on_tags
+            return unless ex.metadata.keys.any? &retry_on_tags.method(:include?)
+          end
+
           example = fetch_current_example.call(self)
           retry_count = ex.metadata[:retry] || RSpec.configuration.default_retry_count
           sleep_interval = ex.metadata[:retry_wait] || RSpec.configuration.default_sleep_interval
