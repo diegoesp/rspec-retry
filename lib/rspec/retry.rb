@@ -20,9 +20,9 @@ module RSpec
 
         config.around(:each) do |ex|
           # If retry_on_tags is specified we have to filter to see if we have to execute rspec-retry
-          #if retry_on_tags = RSpec.configuration.retry_on_tags
-          #  return unless ex.metadata.keys.any? &retry_on_tags.method(:include?)
-          #end
+          if retry_on_tags = RSpec.configuration.retry_on_tags
+            return unless ex.metadata.keys.any? &retry_on_tags.method(:include?)
+          end
 
           example = fetch_current_example.call(self)
           retry_count = ex.metadata[:retry] || RSpec.configuration.default_retry_count
